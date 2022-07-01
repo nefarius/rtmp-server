@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="RTMP Server Movie Theatre">
+    <meta name="author" content="">
+
+    <title>RTMP Server Movie Theatre</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- Plyr player -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.6.4/plyr.css" />
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <!-- Plyr player -->
+    <script src="https://cdn.plyr.io/3.6.4/plyr.polyfilled.js"></script>
+
+    <style>
+        body {
+            background:
+                /* top, transparent black, faked with gradient */
+                linear-gradient(rgba(0, 0, 0, 0.7),
+                    rgba(0, 0, 0, 0.7)),
+                /* bottom, image */
+                url(brennenburg.jpg);
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <!-- Page Content -->
+    <div class="container">
+
+        <div class="row">
+            <div class="col-lg-12 text-center">
+                <h1>RTMP Server</h1>
+                <p class="lead">Movie Theatre</p>
+
+            </div>
+
+            <div class="col-lg-12 text-center">
+                <p>
+                    <video controls crossorigin playsinline width="1280" height="720">
+                        <!-- <source src="" type="application/x-mpegURL" />  -->
+                    </video>
+                    <script>
+
+                        document.addEventListener('DOMContentLoaded', () => {
+
+                            const params = window.location.pathname.split('/').slice(1);
+                            const key = params[1];
+                            const origin = window.location.origin;
+                            const source = origin + '/hls/' + key + '.m3u8';
+
+                            const video = document.querySelector('video');
+
+                            // For more options see: https://github.com/sampotts/plyr/#options
+                            // captions.update is required for captions to work with hls.js
+                            const player = new Plyr(video, {
+                                captions: { active: true, update: true, language: 'en' },
+                                controls: ['play-large', 'play', 'mute', 'volume', 'fullscreen'],
+                                autoplay: true
+                            });
+
+                            if (!Hls.isSupported()) {
+                                video.src = source;
+                            } else {
+
+                                // For more Hls.js options, see https://github.com/dailymotion/hls.js
+                                const hls = new Hls();
+                                hls.loadSource(source);
+                                hls.attachMedia(video);
+                                window.hls = hls;
+
+                                // Handle changing captions
+                                player.on('languagechange', () => {
+                                    // Caption support is still flaky. See: https://github.com/sampotts/plyr/issues/994
+                                    setTimeout(() => hls.subtitleTrack = player.currentTrack, 50);
+                                });
+
+                                hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                                    player.play();
+                                });
+
+                                hls.on(Hls.Events.ERROR, function (eventName, data) {
+                                    console.warn('Error event:', data);
+                                    // Doesn't work, find better way to notify user or auto-retry
+                                    //player.play();
+                                });
+                            }
+
+                            // Expose player so it can be used from the console
+                            window.player = player;
+                        });
+
+                    </script>
+                </p>
+
+            </div>
+        </div>
+        <!-- /.row -->
+
+    </div>
+    <!-- /.container -->
+
+</body>
+
+</html>
